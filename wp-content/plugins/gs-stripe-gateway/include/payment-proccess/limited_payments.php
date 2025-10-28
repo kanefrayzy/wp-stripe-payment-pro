@@ -89,11 +89,10 @@ try {
     //var_dump($paymentIntent->next_action);
     //var_dump($paymentIntent->next_action->type);
     
-    // חשוב!!!! 'use_stripe_sdk' זה עבור 3D Secure
-    if ($paymentIntent->status === 'requires_action' && 
-        $paymentIntent->next_action && 
-        $paymentIntent->next_action->type === 'use_stripe_sdk') {
-
+    // Проверка статуса платежа для ограниченных платежей
+    if ($paymentIntent->status === 'requires_action') {
+        // Требуется дополнительное действие (3D Secure или другая аутентификация)
+        
         $update = \Stripe\Subscription::update($subscription->id, [
             'cancel_at' => $cancel_time, // ביטול המנוי לאחר X מחזורים
             //'cancel_at_period_end' => true,

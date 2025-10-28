@@ -84,20 +84,15 @@ try {
     //var_dump($paymentIntent->next_action);
     //var_dump($paymentIntent->next_action->type);
     
-    // חשוב!!!! 'use_stripe_sdk' זה עבור 3D Secure
-    if ($paymentIntent->status === 'requires_action' && 
-        $paymentIntent->next_action && 
-        $paymentIntent->next_action->type === 'use_stripe_sdk') {
-
-           
-        // רישום המצב הנוכחי של המנוי במערכת
+    // Проверка статуса платежа для подписки
+    if ($paymentIntent->status === 'requires_action') {
+        // Требуется дополнительное действие (3D Secure или другая аутентификация)
         $this->setOrder('requires_action', 'subscription', $paymentIntent->id, $latestInvoice->id, '', $subscription->id,$this->args);
         
         // החזרת פרטי ה-redirect לצד הלקוח
         wp_send_json_success([
             'requires_action' => true,
             'payment_intent_client_secret' => $paymentIntent->client_secret,
-            //'redirect_url' => $paymentIntent->next_action->redirect_to_url->url,
             'thank_you_page' => $this->args['thank_you_page'] ?? '',
             'subscription_id' => $subscription->id,
             'message' => 'Payment requires additional authentication.',

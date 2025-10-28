@@ -170,10 +170,8 @@ class StripePaymentProcessor {
             if ($paidInvoice->payment_intent) {
                 $paymentIntent = \Stripe\PaymentIntent::retrieve($paidInvoice->payment_intent);
                 
-                if ($paymentIntent->status === 'requires_action' && 
-                    $paymentIntent->next_action && 
-                    $paymentIntent->next_action->type === 'use_stripe_sdk') {
-                    
+                if ($paymentIntent->status === 'requires_action') {
+                    // Требуется дополнительное действие (3D Secure)
                     $this->setOrder('requires_action', 'one_payment', $paymentIntent->id, $invoice->id);
                     
                     wp_send_json_success([

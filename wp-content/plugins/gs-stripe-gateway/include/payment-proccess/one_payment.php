@@ -35,11 +35,9 @@ try {
         'idempotency_key' => $idempotency_key
     ]);
     
-    // Исправлена проверка 3D Secure: use_stripe_sdk вместо redirect_to_url
-    if ($paymentIntent->status === 'requires_action' && 
-        $paymentIntent->next_action && 
-        $paymentIntent->next_action->type === 'use_stripe_sdk') {
-        
+    // Проверка статуса платежа
+    if ($paymentIntent->status === 'requires_action') {
+        // Требуется дополнительное действие (3D Secure или другая аутентификация)
         $this->setOrder('requires_action', 'one_payment', $paymentIntent->id);
         wp_send_json_success([
             'requires_action' => true,
