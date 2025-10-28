@@ -144,22 +144,23 @@ class StripePaymentProcessor {
                 'crm_product_id' => $this->args['crm_product_id'] ?? '',
             ];
             
-            $invoiceItem = \Stripe\InvoiceItem::create([
-                'customer' => $this->args['customer_id'],
-                'price' => $this->args['price_id'],
-                'quantity' => 1,
-            ]);
-
             $invoice = \Stripe\Invoice::create([
                 'customer' => $this->args['customer_id'],
                 'collection_method' => 'charge_automatically',
                 'default_payment_method' => $this->args['payment_method_id'],
                 'metadata' => $metadata,
-                'auto_advance' => true,
-                'pending_invoice_items_behavior' => 'include',
+                'auto_advance' => false,
             ]);
 
-            $finalizedInvoice = $invoice->finalizeInvoice();
+            $invoiceItem = \Stripe\InvoiceItem::create([
+                'customer' => $this->args['customer_id'],
+                'invoice' => $invoice->id,
+                'price' => $this->args['price_id'],
+                'quantity' => 1,
+            ]);
+
+            $retrievedInvoice = \Stripe\Invoice::retrieve($invoice->id);
+            $finalizedInvoice = $retrievedInvoice->finalizeInvoice();
             
             if ($finalizedInvoice->status === 'open') {
                 $paidInvoice = $finalizedInvoice->pay();
