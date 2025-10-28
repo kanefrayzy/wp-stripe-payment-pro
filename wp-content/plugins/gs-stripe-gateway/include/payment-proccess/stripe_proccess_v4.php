@@ -133,6 +133,8 @@ class StripePaymentProcessor {
         try {
             $idempotency_key = 'invoice_' . $this->args['customer_id'] . '_' . time() . '_' . $this->key;
             
+            $price = \Stripe\Price::retrieve($this->args['price_id']);
+            
             $metadata = [
                 'product_id' => $this->args['product'] ?? '',
                 'price_id' => $this->args['price_id'] ?? '',
@@ -148,6 +150,7 @@ class StripePaymentProcessor {
                 'customer' => $this->args['customer_id'],
                 'collection_method' => 'charge_automatically',
                 'default_payment_method' => $this->args['payment_method_id'],
+                'currency' => $price->currency,
                 'metadata' => $metadata,
                 'auto_advance' => false,
             ]);
