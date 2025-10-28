@@ -195,6 +195,14 @@ class StripePaymentProcessor {
                 } else {
                     wp_send_json_error(['message' => 'Payment failed. Status: ' . $paymentIntent->status]);
                 }
+            } elseif ($retrievedInvoice->status === 'paid') {
+                $this->setOrder('payment_succeeded', 'one_payment', 'invoice_' . $retrievedInvoice->id, $retrievedInvoice->id);
+                
+                wp_send_json_success([
+                    'message' => 'Invoice paid successfully.',
+                    'invoice_id' => $retrievedInvoice->id,
+                    'thank_you_page' => $this->args['thank_you_page'] ?? '',
+                ]);
             } else {
                 wp_send_json_error(['message' => 'No payment intent found for invoice. Status: ' . $retrievedInvoice->status]);
             }
