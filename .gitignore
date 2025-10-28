@@ -1,0 +1,56 @@
+# WordPress core files (не нужны в репозитории)
+/wp-admin/
+/wp-includes/
+/wp-content/index.php
+/wp-content/themes/twentytwenty*/
+/wp-content/plugins/akismet/
+/wp-content/plugins/hello.php
+/license.txt
+/readme.html
+
+# Конфигурация (содержит пароли!)
+wp-config.php
+.htaccess
+.env
+*.env
+*.env.*
+
+# Uploads (слишком большие файлы)
+/wp-content/uploads/
+/wp-content/upgrade/
+/wp-content/backup-db/
+/wp-content/backups/
+/wp-content/cache/
+
+# Composer
+/vendor/
+/wp-content/plugins/*/vendor/
+composer.lock
+
+# Logs
+*.log
+error_log
+debug.log
+/wp-content/debug.log
+
+# OS files
+.DS_Store
+Thumbs.db
+._*
+*.swp
+*.swo
+*~
+
+# IDE
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Temporary
+*.tmp
+*.bak
+*.old
+*.orig
+/wp-content/ai1wm-backups/
+/wp-content/backups/

@@ -1,0 +1,8 @@
+<head>
+  <script src="https://js.stripe.com/v3/"></script>
+</head>
+<body>
+  <div id="checkout">
+    <!-- Checkout will insert the payment form here -->
+  </div>
+</body>

@@ -1,0 +1,282 @@
+table {
+    width: 100%;
+    border-collapse: collapse;
+    direction: rtl;
+    text-align: right;
+    table-layout: fixed;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: right;
+}
+
+th {
+    background-color: #f2f2f2;
+}
+
+.product-col{
+    display: flex;
+    align-items: center;
+}
+
+.product-col h2{
+    font-size: 18px;
+    margin: 0;
+}
+.price-col{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0; 
+    direction: ltr;
+    word-break: break-all;
+}
+
+.selectable-table tr {
+    cursor: pointer;
+}
+
+.currency{
+    font-size: 75%;
+}
+
+.selectable-table tr.active {
+    background-color: #cce5ff; /* Light blue for selected row */
+    box-shadow: 0px 0px 10px -3px;
+}
+
+#payment-form {
+    /*background: #fff;*/
+    padding: 20px;
+    /*border-radius: 10px;*/
+    /*box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);*/
+    max-width: 570px;
+    margin: auto;
+}
+
+input select{
+    width: 100%;
+}
+#card-element {
+    background-color: #f7f7f7;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.stripe-element {
+    margin-bottom: 10px;
+    padding: 8px;
+    border: 1px solid #666;
+    border-radius: 4px;
+    width: 100%;
+}
+.stripe-card-elements{
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    align-items: flex-start;
+}
+.stripe-element{
+	background:#fff;
+}
+.form_inline_fields{
+    display: flex;
+    gap: 15px;
+}
+.form_block_fields{
+    display: block;
+}
+
+#payment-form div{
+    margin-bottom: 10px;
+}
+
+#payment-form .elementor-field-group{
+    padding-right: calc(10px / 2);
+    padding-left: calc(10px / 2);
+    margin-bottom: 10px;
+}
+
+#payment-form input {
+    text-align: right;
+    padding: 8px;
+}
+
+#payment-form #cupon_button{
+    top: 0;
+    left: 0;
+    position: absolute;
+    width: 35% !important;
+}
+#payment-form #cupon_button.active-coupon{
+    background: #ff1f1f;
+}
+
+#payment-form button {
+    background-color: #9452C9;
+    color: white;
+    padding: 10px 0px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    width: 100% !important;
+}
+
+#payment-form button:hover {
+    background-color: #80CAD1;
+}
+#payment-form #error-message.active{
+    text-align: center;
+    padding: 10px;
+    font-weight: 600;
+    margin: 6px 0;
+	border: 2px solid #ff3737;
+}
+
+
+
+.top-errors{
+	position: fixed;
+    z-index: 999;
+}
+.error-message.active{
+    text-align: center;
+    padding: 10px;
+    font-weight: 600;
+    color: #fff;
+    margin: 0;
+	width:100%;
+	z-index:999;
+}
+.error-message.red{
+	background:#ff1f1f;
+}
+.error-message.yellow{
+	background:#ffe200;
+}
+#payment-form #error-message.green.active{
+    background: #40f01d;
+}
+
+#loader {
+    display: none; /* Hidden by default */
+    text-align: center;
+    font-size: 38px;
+    text-align: center;
+    position: fixed;
+    top: 0;
+    height: 100vh;
+    padding: 50vh 0;
+}
+
+@media (max-width: 600px) {
+    #payment-form {
+        padding: 15px;
+        width: 100%;
+    }
+
+    button {
+        width: 100%;
+    }
+}
+
+/* elementor widget */
+.card-number-element,
+.card-expiry-element,
+.card-cvv-element
+{
+    width: 100%;
+    border: 1px solid #666;
+    border-radius: 3px;
+    padding: .5rem 1rem;
+    transition: all .3s;
+    background: #fff;
+}
+
+/* Validation */
+#payment-form input.error-active{
+    padding-right: 18px !important;   
+}
+#payment-form .validation-alert-label{
+    font-size: 70%;
+    font-weight: 700;
+}
+
+#payment-form #card-errors {
+    font-size: 70%;
+    font-weight: 700;
+    display: none;
+    position: absolute;
+    bottom: -5px;
+}
+
+#payment-form .validation-alert{
+    position: absolute;
+    opacity: 0.5;
+    top: 13px;
+}
+
+#payment-form .elementor-column {
+    align-content: flex-start;
+}
+
+#payment-form .validation-alert,
+#payment-form .validation-alert-label{
+    display: none;  
+}
+
+/* WIDGETS */
+#success-message{   
+    border: 2px solid #12d25c;
+    width: 100%;
+    padding: 4px;
+    margin: 10px 10px 0;
+    font-weight: 500;
+    display: none;
+}
+#error-message{
+    border: 2px solid  #ff0000;;
+    width: 100%;
+    padding: 4px;
+    margin: 10px 10px 0;
+    font-weight: 500;
+    display: none;
+}
+
+
+.elementor-widget-price{
+    direction: ltr;
+}
+.elementor-widget-price #payment_calculation{
+    display: none;
+}
+
+.elementor-widget-price #payment_calculation  > span{
+    font-size: 40%;
+    line-height: 0px;
+}
+.elementor-widget-price .overline{
+    text-decoration: line-through;
+    transition: all 1s;
+    font-size: 80% !important;
+}
+
+.elementor-widget-price #discount,
+.elementor-widget-price #seperator{
+    display: none;
+}
+
+.elementor-widget-price #discount.active{
+    display: block;
+}
+.elementor-widget-price #divider{
+    font-size: 68%;
+}
+.elementor-widget-price #sum{
+    font-size: 68%;
+}
