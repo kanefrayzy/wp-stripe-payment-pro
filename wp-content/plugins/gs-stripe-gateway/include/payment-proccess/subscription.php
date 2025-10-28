@@ -54,13 +54,12 @@ try {
         'max_payments' => $this->args['max_payments'] ?? '',
     ];
     
-    // יצירת המנוי עם הגדרות תשלום
     $subscription = \Stripe\Subscription::create([
         'customer' => $this->args['customer_id'],
         'items' => [
             ['price' => $priceId],
         ],
-        'payment_behavior' => 'allow_incomplete',
+        'payment_behavior' => 'default_incomplete',
         'payment_settings' => [
             'payment_method_types' => ['card'],
             'save_default_payment_method' => 'on_subscription',
@@ -68,6 +67,7 @@ try {
         'expand' => ['latest_invoice.payment_intent'],
         'metadata' => $metadata,
         'default_payment_method' => $this->args['payment_method_id'],
+        'off_session' => true,
     ], [
         'idempotency_key' => $idempotency_key
     ]);

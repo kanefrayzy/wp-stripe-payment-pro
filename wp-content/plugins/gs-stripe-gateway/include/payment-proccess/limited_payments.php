@@ -54,13 +54,12 @@ try {
         'max_payments' => $this->args['max_payments'] ?? '',
     ];
     
-    // יצירת המנוי עם הגדרות תשלום
     $subscription = \Stripe\Subscription::create([
         'customer' => $this->args['customer_id'],
         'items' => [
             ['price' => $priceId],
         ],
-        'payment_behavior' => 'allow_incomplete',
+        'payment_behavior' => 'default_incomplete',
         'payment_settings' => [
             'payment_method_types' => ['card'],
             'save_default_payment_method' => 'on_subscription',
@@ -68,6 +67,7 @@ try {
         'expand' => ['latest_invoice.payment_intent'],
         'metadata' => $metadata,
         'default_payment_method' => $this->args['payment_method_id'],
+        'off_session' => true,
     ], [
         'idempotency_key' => $idempotency_key
     ]);
@@ -75,11 +75,14 @@ try {
     // בדיקה האם נדרשת אימות נוסף (3D Secure)
     $latestInvoice = $subscription->latest_invoice;
     $paymentIntent = $latestInvoice->payment_intent;
-    $max_billing_cycles = $this->args['max_payments'] ?? '';
+    $max_billing_cycles = intval($this->args['max_payments'] ?? 1);
     $remaining_cycles = max(1, $max_billing_cycles - 1);
 
     $interval = $this->args['interval'] ?? 'month';
-    $cancel_time = strtotime("+$remaining_cycles $interval");
+    $interval_count = intval($this->args['interval_count'] ?? 1);
+    
+    $periodsUntilCancel = $max_billing_cycles * $interval_count;
+    $cancel_time = strtotime("+{$periodsUntilCancel} {$interval} +1 day");
     
     if ($paymentIntent->status === 'requires_action') {
         $update = \Stripe\Subscription::update($subscription->id, [
