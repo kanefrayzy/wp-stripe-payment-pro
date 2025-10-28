@@ -147,7 +147,6 @@ class StripePaymentProcessor {
             $invoiceItem = \Stripe\InvoiceItem::create([
                 'customer' => $this->args['customer_id'],
                 'price' => $this->args['price_id'],
-                'quantity' => 1,
             ]);
 
             $invoice = \Stripe\Invoice::create([
