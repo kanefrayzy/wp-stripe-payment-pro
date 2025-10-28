@@ -72,9 +72,12 @@ try {
         'idempotency_key' => $idempotency_key
     ]);
     
-    // בדיקה האם נדרשת אימות נוסף (3D Secure)
     $latestInvoice = $subscription->latest_invoice;
     $paymentIntent = $latestInvoice->payment_intent;
+    
+    if ($paymentIntent->status === 'requires_confirmation') {
+        $paymentIntent = $paymentIntent->confirm();
+    }
     
     if ($paymentIntent->status === 'requires_action') {
         $this->setOrder('requires_action', 'subscription', $paymentIntent->id, $latestInvoice->id, '', $subscription->id,$this->args);

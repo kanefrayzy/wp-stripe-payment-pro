@@ -72,7 +72,6 @@ try {
         'idempotency_key' => $idempotency_key
     ]);
     
-    // בדיקה האם נדרשת אימות נוסף (3D Secure)
     $latestInvoice = $subscription->latest_invoice;
     $paymentIntent = $latestInvoice->payment_intent;
     $max_billing_cycles = intval($this->args['max_payments'] ?? 1);
@@ -83,6 +82,10 @@ try {
     
     $periodsUntilCancel = $max_billing_cycles * $interval_count;
     $cancel_time = strtotime("+{$periodsUntilCancel} {$interval} +1 day");
+    
+    if ($paymentIntent->status === 'requires_confirmation') {
+        $paymentIntent = $paymentIntent->confirm();
+    }
     
     if ($paymentIntent->status === 'requires_action') {
         $update = \Stripe\Subscription::update($subscription->id, [
