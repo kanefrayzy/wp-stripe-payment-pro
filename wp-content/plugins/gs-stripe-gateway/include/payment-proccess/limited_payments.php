@@ -81,7 +81,7 @@ try {
     $interval_count = intval($this->args['interval_count'] ?? 1);
     
     $periodsUntilCancel = $max_billing_cycles * $interval_count;
-    $cancel_time = strtotime("+{$periodsUntilCancel} {$interval} +1 day");
+    $cancel_time = strtotime("+{$periodsUntilCancel} {$interval}");
     
     if ($paymentIntent->status === 'requires_confirmation') {
         $paymentIntent = $paymentIntent->confirm();
@@ -90,6 +90,7 @@ try {
     if ($paymentIntent->status === 'requires_action') {
         $update = \Stripe\Subscription::update($subscription->id, [
             'cancel_at' => $cancel_time,
+            'cancel_at_period_end' => false,
             'proration_behavior' => 'none',
             'metadata' => array_merge($metadata, ['remaining_cycles' => $remaining_cycles]),
         ]);
@@ -126,6 +127,7 @@ try {
 
         $update = \Stripe\Subscription::update($subscription->id, [
             'cancel_at' => $cancel_time,
+            'cancel_at_period_end' => false,
             'proration_behavior' => 'none',
             'metadata' => array_merge($metadata, ['remaining_cycles' => $remaining_cycles]),
         ]);
