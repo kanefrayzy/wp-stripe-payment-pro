@@ -90,6 +90,7 @@ try {
     if ($paymentIntent->status === 'requires_action') {
         $update = \Stripe\Subscription::update($subscription->id, [
             'cancel_at' => $cancel_time,
+            'proration_behavior' => 'none',
             'metadata' => array_merge($metadata, ['remaining_cycles' => $remaining_cycles]),
         ]);
         
@@ -124,8 +125,8 @@ try {
         $invoice->save();
 
         $update = \Stripe\Subscription::update($subscription->id, [
-            'cancel_at' => $cancel_time, // ביטול המנוי לאחר X מחזורים
-            //'cancel_at_period_end' => true,
+            'cancel_at' => $cancel_time,
+            'proration_behavior' => 'none',
             'metadata' => array_merge($metadata, ['remaining_cycles' => $remaining_cycles]),
         ]);
 
