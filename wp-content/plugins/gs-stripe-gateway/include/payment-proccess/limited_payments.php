@@ -90,7 +90,6 @@ try {
     if ($paymentIntent->status === 'requires_action') {
         $update = \Stripe\Subscription::update($subscription->id, [
             'cancel_at' => $cancel_time,
-            'cancel_at_period_end' => false,
             'proration_behavior' => 'none',
             'metadata' => array_merge($metadata, ['remaining_cycles' => $remaining_cycles]),
         ]);
@@ -127,7 +126,6 @@ try {
 
         $update = \Stripe\Subscription::update($subscription->id, [
             'cancel_at' => $cancel_time,
-            'cancel_at_period_end' => false,
             'proration_behavior' => 'none',
             'metadata' => array_merge($metadata, ['remaining_cycles' => $remaining_cycles]),
         ]);
