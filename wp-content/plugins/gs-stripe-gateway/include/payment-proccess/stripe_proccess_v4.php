@@ -171,7 +171,31 @@ class StripePaymentProcessor {
                     $paymentIntent = \Stripe\PaymentIntent::retrieve($paymentIntent);
                 }
                 
-                if ($paymentIntent->status === 'requires_action') {
+                if ($paymentIntent->status === 'requires_confirmation') {
+                    $confirmedPaymentIntent = \Stripe\PaymentIntent::confirm($paymentIntent->id);
+                    
+                    if ($confirmedPaymentIntent->status === 'requires_action') {
+                        $this->setOrder('requires_action', 'one_payment', $confirmedPaymentIntent->id, $invoiceWithPaymentIntent->id);
+                        
+                        wp_send_json_success([
+                            'requires_action' => true,
+                            'payment_intent_client_secret' => $confirmedPaymentIntent->client_secret,
+                            'message' => 'Invoice requires additional authentication.',
+                            'thank_you_page' => $this->args['thank_you_page'] ?? '',
+                        ]);
+                    } elseif ($confirmedPaymentIntent->status === 'succeeded') {
+                        $this->setOrder('payment_succeeded', 'one_payment', $confirmedPaymentIntent->id, $invoiceWithPaymentIntent->id);
+                        
+                        wp_send_json_success([
+                            'message' => 'Invoice paid successfully.',
+                            'invoice_id' => $invoiceWithPaymentIntent->id,
+                            'payment_intent_id' => $confirmedPaymentIntent->id,
+                            'thank_you_page' => $this->args['thank_you_page'] ?? '',
+                        ]);
+                    } else {
+                        wp_send_json_error(['message' => 'Payment confirmation failed. Status: ' . $confirmedPaymentIntent->status]);
+                    }
+                } elseif ($paymentIntent->status === 'requires_action') {
                     $this->setOrder('requires_action', 'one_payment', $paymentIntent->id, $invoiceWithPaymentIntent->id);
                     
                     wp_send_json_success([
