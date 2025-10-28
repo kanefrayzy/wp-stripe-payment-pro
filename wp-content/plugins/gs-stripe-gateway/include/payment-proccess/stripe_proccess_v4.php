@@ -156,14 +156,19 @@ class StripePaymentProcessor {
                 'metadata' => $metadata,
             ]);
 
-            $invoice->finalizeInvoice();
-            $paidInvoice = $invoice->pay();
+            $finalizedInvoice = $invoice->finalizeInvoice();
+            
+            if ($finalizedInvoice->status === 'open' || $finalizedInvoice->status === 'draft') {
+                $paidInvoice = $finalizedInvoice->pay();
+            } else {
+                $paidInvoice = $finalizedInvoice;
+            }
 
             if ($paidInvoice->payment_intent) {
                 $paymentIntent = \Stripe\PaymentIntent::retrieve($paidInvoice->payment_intent);
                 
                 if ($paymentIntent->status === 'requires_action') {
-                    $this->setOrder('requires_action', 'one_payment', $paymentIntent->id, $invoice->id);
+                    $this->setOrder('requires_action', 'one_payment', $paymentIntent->id, $paidInvoice->id);
                     
                     wp_send_json_success([
                         'requires_action' => true,
@@ -172,11 +177,11 @@ class StripePaymentProcessor {
                         'thank_you_page' => $this->args['thank_you_page'] ?? '',
                     ]);
                 } elseif ($paymentIntent->status === 'succeeded') {
-                    $this->setOrder('payment_succeeded', 'one_payment', $paymentIntent->id, $invoice->id);
+                    $this->setOrder('payment_succeeded', 'one_payment', $paymentIntent->id, $paidInvoice->id);
                     
                     wp_send_json_success([
                         'message' => 'Invoice paid successfully.',
-                        'invoice_id' => $invoice->id,
+                        'invoice_id' => $paidInvoice->id,
                         'payment_intent_id' => $paymentIntent->id,
                         'thank_you_page' => $this->args['thank_you_page'] ?? '',
                     ]);
