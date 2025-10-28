@@ -131,10 +131,8 @@ class StripePaymentProcessor {
 
     private function createInvoice() {
         try {
-            // Генерация idempotency key для защиты от дублирования
             $idempotency_key = 'invoice_' . $this->args['customer_id'] . '_' . time() . '_' . $this->key;
             
-            // Подготовка metadata
             $metadata = [
                 'product_id' => $this->args['product'] ?? '',
                 'price_id' => $this->args['price_id'] ?? '',
@@ -146,13 +144,11 @@ class StripePaymentProcessor {
                 'crm_product_id' => $this->args['crm_product_id'] ?? '',
             ];
             
-            // ✅ Создание Invoice Item с использованием price_id (привязка к Product)
             $invoiceItem = \Stripe\InvoiceItem::create([
                 'customer' => $this->args['customer_id'],
-                'price' => $this->args['price_id'], // Используем price вместо amount
+                'price' => $this->args['price_id'],
             ]);
 
-            // ✅ Создание Invoice
             $invoice = \Stripe\Invoice::create([
                 'customer' => $this->args['customer_id'],
                 'collection_method' => 'charge_automatically',
@@ -160,18 +156,13 @@ class StripePaymentProcessor {
                 'metadata' => $metadata,
             ]);
 
-            // Финализация Invoice
             $invoice->finalizeInvoice();
-            
-            // ✅ Оплата Invoice (один раз)
             $paidInvoice = $invoice->pay();
 
-            // Проверка на необходимость 3D Secure
             if ($paidInvoice->payment_intent) {
                 $paymentIntent = \Stripe\PaymentIntent::retrieve($paidInvoice->payment_intent);
                 
                 if ($paymentIntent->status === 'requires_action') {
-                    // Требуется дополнительное действие (3D Secure)
                     $this->setOrder('requires_action', 'one_payment', $paymentIntent->id, $invoice->id);
                     
                     wp_send_json_success([
@@ -281,7 +272,6 @@ function stripe_process_payment_action() {
 add_action('wp_ajax_stripe_process_payment', 'stripe_process_payment_action');
 add_action('wp_ajax_nopriv_stripe_process_payment', 'stripe_process_payment_action');
 
-// Новый экшн для подтверждения платежа после 3D Secure
 function stripe_confirm_payment_action() {
     if (strpos($_SERVER['CONTENT_TYPE'], 'application/json') !== false) {
         $data = json_decode(file_get_contents('php://input'), true);
@@ -303,12 +293,10 @@ function stripe_confirm_payment_action() {
     }
 
     try {
-        // Инициализация Stripe
         $testmode = get_post_meta($page_id, 'env_mode', true);
         $frkey = $testmode ? get_option('product_key_field_dev') : get_option('product_key_field_prod');
         \Stripe\Stripe::setApiKey($frkey);
 
-        // Получаем PaymentIntent из Stripe
         $paymentIntent = \Stripe\PaymentIntent::retrieve($payment_intent_id);
 
         if ($paymentIntent->status === 'succeeded') {

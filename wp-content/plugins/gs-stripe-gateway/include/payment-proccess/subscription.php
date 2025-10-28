@@ -4,8 +4,6 @@ if (!defined('ABSPATH')) die();
 
 try {
     $currency = strtolower($this->args['currency']);
-    
-    // Генерация idempotency key для защиты от дублирования
     $idempotency_key = 'subscription_' . $this->args['customer_id'] . '_' . time() . '_' . $this->key;
     
     // יצירת מחיר (Price) אם לא סופק
@@ -44,7 +42,6 @@ try {
         return;
     }
     
-    // הגדרת ה-metadata למנוי עם product_id ו-price_id
     $metadata = [
         'product_id' => $this->args['product'] ?? '',
         'price_id' => $priceId,
@@ -63,13 +60,12 @@ try {
         'items' => [
             ['price' => $priceId],
         ],
-        'payment_behavior' => 'allow_incomplete', // חשוב עבור 3D Secure
+        'payment_behavior' => 'allow_incomplete',
         'payment_settings' => [
             'payment_method_types' => ['card'],
             'save_default_payment_method' => 'on_subscription',
         ],
         'expand' => ['latest_invoice.payment_intent'],
-        //'redirect_url' => 'https://auto.gsbot.in/webhook/15061d14-2e04-4c06-a51f-1246725fa596',
         'metadata' => $metadata,
         'default_payment_method' => $this->args['payment_method_id'],
     ], [
@@ -79,17 +75,10 @@ try {
     // בדיקה האם נדרשת אימות נוסף (3D Secure)
     $latestInvoice = $subscription->latest_invoice;
     $paymentIntent = $latestInvoice->payment_intent;
-
-    //var_dump($paymentIntent->status,$paymentIntent->next_action);
-    //var_dump($paymentIntent->next_action);
-    //var_dump($paymentIntent->next_action->type);
     
-    // Проверка статуса платежа для подписки
     if ($paymentIntent->status === 'requires_action') {
-        // Требуется дополнительное действие (3D Secure или другая аутентификация)
         $this->setOrder('requires_action', 'subscription', $paymentIntent->id, $latestInvoice->id, '', $subscription->id,$this->args);
         
-        // החזרת פרטי ה-redirect לצד הלקוח
         wp_send_json_success([
             'requires_action' => true,
             'payment_intent_client_secret' => $paymentIntent->client_secret,

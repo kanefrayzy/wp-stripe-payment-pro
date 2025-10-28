@@ -4,11 +4,8 @@ if (!defined('ABSPATH')) die();
 
 try {
     $currency = strtolower($this->args['currency']);
-    
-    // Генерация idempotency key для защиты от дублирования
     $idempotency_key = 'payment_' . $this->args['customer_id'] . '_' . time() . '_' . $this->key;
     
-    // Подготовка metadata с product_id и price_id
     $metadata = [
         'product_id' => $this->args['product'] ?? '',
         'price_id' => $this->args['price_id'] ?? '',
@@ -35,9 +32,7 @@ try {
         'idempotency_key' => $idempotency_key
     ]);
     
-    // Проверка статуса платежа
     if ($paymentIntent->status === 'requires_action') {
-        // Требуется дополнительное действие (3D Secure или другая аутентификация)
         $this->setOrder('requires_action', 'one_payment', $paymentIntent->id);
         wp_send_json_success([
             'requires_action' => true,
@@ -46,8 +41,6 @@ try {
             'thank_you_page' => $this->args['thank_you_page'] ?? '',
         ]);
     } elseif ($paymentIntent->status === 'succeeded') {
-        // ✅ ИСПРАВЛЕНО: Убрано создание Invoice - платеж уже прошел через PaymentIntent
-        // Записываем успешный платеж без повторного списания
         $this->setOrder('payment_succeeded', 'one_payment', $paymentIntent->id);
         
         wp_send_json_success([

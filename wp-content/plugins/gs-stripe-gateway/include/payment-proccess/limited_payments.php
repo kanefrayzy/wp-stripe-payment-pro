@@ -4,8 +4,6 @@ if (!defined('ABSPATH')) die();
 
 try {
     $currency = strtolower($this->args['currency']);
-    
-    // Генерация idempotency key для защиты от дублирования
     $idempotency_key = 'limited_payments_' . $this->args['customer_id'] . '_' . time() . '_' . $this->key;
     
     // יצירת מחיר (Price) אם לא סופק
@@ -44,7 +42,6 @@ try {
         return;
     }
     
-    // הגדרת ה-metadata למנוי עם product_id ו-price_id
     $metadata = [
         'product_id' => $this->args['product'] ?? '',
         'price_id' => $priceId,
@@ -63,13 +60,12 @@ try {
         'items' => [
             ['price' => $priceId],
         ],
-        'payment_behavior' => 'allow_incomplete', // חשוב עבור 3D Secure
+        'payment_behavior' => 'allow_incomplete',
         'payment_settings' => [
             'payment_method_types' => ['card'],
             'save_default_payment_method' => 'on_subscription',
         ],
         'expand' => ['latest_invoice.payment_intent'],
-        //'redirect_url' => 'https://auto.gsbot.in/webhook/15061d14-2e04-4c06-a51f-1246725fa596',
         'metadata' => $metadata,
         'default_payment_method' => $this->args['payment_method_id'],
     ], [
@@ -82,20 +78,12 @@ try {
     $max_billing_cycles = $this->args['max_payments'] ?? '';
     $remaining_cycles = max(1, $max_billing_cycles - 1);
 
-    $interval = $this->args['interval'] ?? 'month'; // ודא שזה נכון בהתאם לתמחור שלך
+    $interval = $this->args['interval'] ?? 'month';
     $cancel_time = strtotime("+$remaining_cycles $interval");
-
-    //var_dump($paymentIntent->status,$paymentIntent->next_action);
-    //var_dump($paymentIntent->next_action);
-    //var_dump($paymentIntent->next_action->type);
     
-    // Проверка статуса платежа для ограниченных платежей
     if ($paymentIntent->status === 'requires_action') {
-        // Требуется дополнительное действие (3D Secure или другая аутентификация)
-        
         $update = \Stripe\Subscription::update($subscription->id, [
-            'cancel_at' => $cancel_time, // ביטול המנוי לאחר X מחזורים
-            //'cancel_at_period_end' => true,
+            'cancel_at' => $cancel_time,
             'metadata' => array_merge($metadata, ['remaining_cycles' => $remaining_cycles]),
         ]);
         
