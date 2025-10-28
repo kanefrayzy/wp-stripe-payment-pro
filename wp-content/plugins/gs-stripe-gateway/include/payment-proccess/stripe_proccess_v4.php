@@ -110,7 +110,14 @@ class StripePaymentProcessor {
     }
 
     private function onePayment() {
-        require_once ('one_payment.php');
+        // Проверка использования Invoice вместо PaymentIntent
+        $use_invoice = get_post_meta($this->args['page_id'], 'use_invoice', true);
+        
+        if ($use_invoice === '1') {
+            return $this->createInvoice();
+        } else {
+            require_once ('one_payment.php');
+        }
     }
 
     private function limitedPayments() {
@@ -124,68 +131,74 @@ class StripePaymentProcessor {
 
     private function createInvoice() {
         try {
-            // Create invoice item
+            // Генерация idempotency key для защиты от дублирования
+            $idempotency_key = 'invoice_' . $this->args['customer_id'] . '_' . time() . '_' . $this->key;
+            
+            // Подготовка metadata
+            $metadata = [
+                'product_id' => $this->args['product'] ?? '',
+                'price_id' => $this->args['price_id'] ?? '',
+                'origin' => $this->args['origin'] ?? '',
+                'app_payment_method' => 'one_time',
+                'support_agent' => $this->args['support_agent'] ?? '',
+                'transaction_id' => $this->key,
+                'payment_page_url' => $this->page_url,
+                'crm_product_id' => $this->args['crm_product_id'] ?? '',
+            ];
+            
+            // ✅ Создание Invoice Item с использованием price_id (привязка к Product)
             $invoiceItem = \Stripe\InvoiceItem::create([
                 'customer' => $this->args['customer_id'],
-                'price' => $this->args['price_id'],
-                'quantity' => 1,
+                'price' => $this->args['price_id'], // Используем price вместо amount
             ]);
 
-            // Create invoice
+            // ✅ Создание Invoice
             $invoice = \Stripe\Invoice::create([
                 'customer' => $this->args['customer_id'],
-                'auto_advance' => false, // Prevent auto-finalization
-                'metadata' => [
-                    'origin' => $this->args['origin'],
-                    'app_payment_method'=> 'one_time',
-                    'support_agent' => $this->args['support_agent'],
-                    'transaction_id' => $this->key,
-                ],
+                'collection_method' => 'charge_automatically',
+                'default_payment_method' => $this->args['payment_method_id'],
+                'metadata' => $metadata,
             ]);
 
-            // Retrieve and finalize the invoice
-            $retrievedInvoice = \Stripe\Invoice::retrieve($invoice->id);
-            $finalizedInvoice = $retrievedInvoice->finalizeInvoice();
+            // Финализация Invoice
+            $invoice->finalizeInvoice();
+            
+            // ✅ Оплата Invoice (один раз)
+            $paidInvoice = $invoice->pay();
 
-            if ($finalizedInvoice->status === 'open') {
-                // If the invoice is open, create a payment intent
-                $paymentIntent = \Stripe\PaymentIntent::create([
-                    'amount' => $finalizedInvoice->amount_due,
-                    'currency' => $this->args['currency'],
-                    'customer' => $this->args['customer_id'],
-                    'payment_method' => $this->args['payment_method_id'],
-                    'confirm' => true,
-                    'setup_future_usage' => 'off_session',
-                    'return_url' => $this->args['thank_you_page'],
-                ]);
-            } elseif ($finalizedInvoice->status === 'paid') {
-                $paymentIntent = \Stripe\PaymentIntent::create([
-                    'amount' => $finalizedInvoice->amount_due,
-                    'currency' => $this->args['currency'],
-                    'customer' => $this->args['customer_id'],
-                    'payment_method' => $this->args['payment_method_id'],
-                    'confirm' => true,
-                    'setup_future_usage' => 'off_session',
-                    'return_url' => $this->args['thank_you_page'],
-                ]);
-            }
-
-            // Handle requires_action status
-            if ($paymentIntent->status === 'requires_action') {
-                wp_send_json_success([
-                    'requires_action' => true,
-                    'payment_intent_client_secret' => $paymentIntent->client_secret,
-                    'message' => 'Invoice requires additional authentication.',
-                ]);
-            } elseif ($paymentIntent->status === 'succeeded') {
-                wp_send_json_success([
-                    'message' => 'Invoice paid successfully.',
-                    'invoice_id' => $finalizedInvoice->id,
-                ]);
+            // Проверка на необходимость 3D Secure
+            if ($paidInvoice->payment_intent) {
+                $paymentIntent = \Stripe\PaymentIntent::retrieve($paidInvoice->payment_intent);
+                
+                if ($paymentIntent->status === 'requires_action' && 
+                    $paymentIntent->next_action && 
+                    $paymentIntent->next_action->type === 'use_stripe_sdk') {
+                    
+                    $this->setOrder('requires_action', 'one_payment', $paymentIntent->id, $invoice->id);
+                    
+                    wp_send_json_success([
+                        'requires_action' => true,
+                        'payment_intent_client_secret' => $paymentIntent->client_secret,
+                        'message' => 'Invoice requires additional authentication.',
+                        'thank_you_page' => $this->args['thank_you_page'] ?? '',
+                    ]);
+                } elseif ($paymentIntent->status === 'succeeded') {
+                    $this->setOrder('payment_succeeded', 'one_payment', $paymentIntent->id, $invoice->id);
+                    
+                    wp_send_json_success([
+                        'message' => 'Invoice paid successfully.',
+                        'invoice_id' => $invoice->id,
+                        'payment_intent_id' => $paymentIntent->id,
+                        'thank_you_page' => $this->args['thank_you_page'] ?? '',
+                    ]);
+                } else {
+                    wp_send_json_error(['message' => 'Payment failed. Status: ' . $paymentIntent->status]);
+                }
             } else {
-                wp_send_json_error(['message' => 'Invoice not open for payment.']);
+                wp_send_json_error(['message' => 'No payment intent found for invoice.']);
             }
         } catch (\Stripe\Exception\ApiErrorException $e) {
+            $this->setOrder('error', 'one_payment', null, null, $e->getMessage());
             error_log('Invoice processing error: ' . $e->getMessage());
             wp_send_json_error(['message' => 'Error processing invoice: ' . $e->getMessage()]);
         }
@@ -269,3 +282,60 @@ function stripe_process_payment_action() {
 
 add_action('wp_ajax_stripe_process_payment', 'stripe_process_payment_action');
 add_action('wp_ajax_nopriv_stripe_process_payment', 'stripe_process_payment_action');
+
+// Новый экшн для подтверждения платежа после 3D Secure
+function stripe_confirm_payment_action() {
+    if (strpos($_SERVER['CONTENT_TYPE'], 'application/json') !== false) {
+        $data = json_decode(file_get_contents('php://input'), true);
+    } else {
+        $data = $_POST;
+    }
+
+    if (!isset($data['nonce1']) || !wp_verify_nonce($data['nonce1'], 'stripe_payment_nonce')) {
+        wp_send_json_error(['message' => 'Invalid nonce']);
+        wp_die();
+    }
+
+    $payment_intent_id = isset($data['payment_intent_id']) ? sanitize_text_field($data['payment_intent_id']) : '';
+    $page_id = isset($data['page_id']) ? intval($data['page_id']) : 0;
+
+    if (empty($payment_intent_id)) {
+        wp_send_json_error(['message' => 'Payment Intent ID is required']);
+        wp_die();
+    }
+
+    try {
+        // Инициализация Stripe
+        $testmode = get_post_meta($page_id, 'env_mode', true);
+        $frkey = $testmode ? get_option('product_key_field_dev') : get_option('product_key_field_prod');
+        \Stripe\Stripe::setApiKey($frkey);
+
+        // Получаем PaymentIntent из Stripe
+        $paymentIntent = \Stripe\PaymentIntent::retrieve($payment_intent_id);
+
+        if ($paymentIntent->status === 'succeeded') {
+            $thank_you_page = esc_url(get_post_meta($page_id, 'thankyou', true));
+            if (empty($thank_you_page)) {
+                $thank_you_page = home_url('/thank-you');
+            }
+
+            wp_send_json_success([
+                'message' => 'Payment confirmed successfully.',
+                'payment_intent_id' => $paymentIntent->id,
+                'thank_you_page' => $thank_you_page,
+            ]);
+        } else {
+            wp_send_json_error([
+                'message' => 'Payment not completed. Status: ' . $paymentIntent->status
+            ]);
+        }
+    } catch (\Stripe\Exception\ApiErrorException $e) {
+        error_log('Payment confirmation error: ' . $e->getMessage());
+        wp_send_json_error(['message' => 'Error confirming payment: ' . $e->getMessage()]);
+    }
+
+    wp_die();
+}
+
+add_action('wp_ajax_stripe_confirm_payment', 'stripe_confirm_payment_action');
+add_action('wp_ajax_nopriv_stripe_confirm_payment', 'stripe_confirm_payment_action');

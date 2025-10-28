@@ -113,6 +113,14 @@ jQuery(document).ready(function ($, s) {
 
     $('#payment-form').submit(async function (e) {
         e.preventDefault();
+        
+        // Блокировка кнопки для предотвращения повторной отправки
+        const $submitBtn = $('#submit');
+        if ($submitBtn.prop('disabled')) {
+            return false;
+        }
+        $submitBtn.prop('disabled', true);
+        
         $('#error-message').text(''); // נקה הודעות שגיאה קודמות
         $('#loader').fadeIn();
     
@@ -164,6 +172,7 @@ jQuery(document).ready(function ($, s) {
                     console.log('Server Response:', response);
     
                     if (!response.success) {
+                        $submitBtn.prop('disabled', false); // Разблокировка кнопки при ошибке
                         $('#loader').fadeOut();
                         $('#error-message').text(response.data.message || 'Unknown error occurred');
                         return;
@@ -176,6 +185,7 @@ jQuery(document).ready(function ($, s) {
                         if (response.data.setup_intent_client_secret) {
                             stripe.confirmCardSetup(clientSecret).then(function (result) {
                                 if (result.error) {
+                                    $submitBtn.prop('disabled', false); // Разблокировка при ошибке
                                     $('#loader').fadeOut();
                                     console.error('SetupIntent Error:', result.error.message);
                                     $('#error-message').text(result.error.message);
@@ -187,13 +197,41 @@ jQuery(document).ready(function ($, s) {
                         } else if (response.data.payment_intent_client_secret) {
                             stripe.confirmCardPayment(clientSecret).then(function (result) {
                                 if (result.error) {
+                                    $submitBtn.prop('disabled', false); // Разблокировка при ошибке
                                     $('#loader').fadeOut();
                                     console.error('3D Secure Error:', result.error.message);
                                     $('#error-message').text(result.error.message);
                                 } else if (result.paymentIntent.status === 'succeeded') {
                                     console.log('PaymentIntent confirmed successfully');
-                                    handleSuccess(response);
+                                    
+                                    // ✅ НОВЫЙ запрос на сервер после успешного 3D Secure
+                                    $.ajax({
+                                        url: ajaxData.ajaxurl,
+                                        type: 'POST',
+                                        data: {
+                                            action: 'stripe_confirm_payment',
+                                            payment_intent_id: result.paymentIntent.id,
+                                            page_id: paymentFormData.page_id,
+                                            nonce1: ajaxData.nonce1,
+                                        },
+                                        success: function(finalResponse) {
+                                            if (finalResponse.success) {
+                                                handleSuccess(finalResponse);
+                                            } else {
+                                                $submitBtn.prop('disabled', false);
+                                                $('#loader').fadeOut();
+                                                $('#error-message').text(finalResponse.data.message || 'Payment confirmation failed');
+                                            }
+                                        },
+                                        error: function(xhr, status, error) {
+                                            $submitBtn.prop('disabled', false);
+                                            $('#loader').fadeOut();
+                                            console.error('Confirmation Error:', xhr.responseText);
+                                            $('#error-message').text('Failed to confirm payment. Please contact support.');
+                                        }
+                                    });
                                 } else {
+                                    $submitBtn.prop('disabled', false);
                                     $('#loader').fadeOut();
                                     $('#error-message').text('Payment could not be completed');
                                 }
@@ -204,12 +242,14 @@ jQuery(document).ready(function ($, s) {
                     }
                 },
                 error: function (xhr, status, error) {
+                    $submitBtn.prop('disabled', false); // Разблокировка при ошибке AJAX
                     $('#loader').fadeOut();
                     console.error('AJAX Error:', xhr.responseText);
                     $('#error-message').text('Failed to process payment. Please try again.');
                 }
             });
         } catch (err) {
+            $submitBtn.prop('disabled', false); // Разблокировка при исключении
             $('#loader').fadeOut();
             $('#error-message').text(err.message || 'An unexpected error occurred');
         }

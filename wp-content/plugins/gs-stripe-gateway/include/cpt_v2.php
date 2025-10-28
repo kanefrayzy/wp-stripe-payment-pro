@@ -336,6 +336,7 @@ $payment_pages_fields = [
     ['id' => 'crm_product_id', 'label' => 'Crm Product ID', 'type' => 'text'],
     ['id' => 'max_payment_limit', 'label' => 'Limit Payments', 'type' => 'number'],
     ['id' => 'product', 'label' => 'Product ID', 'type' => 'text'],
+    ['id' => 'use_invoice', 'label' => 'Create Invoice (for one-time payments)', 'type' => 'checkbox', 'default' => '0'],
     ['id' => 'crm_send', 'label' => 'Send To Crm', 'type' => 'checkbox'],
     ['id' => 'env_mode', 'label' => 'ENV MODE','type' => 'radio','options' => ['0' => 'Production','1' => 'Test'],'default' => '1'],
     ['id' => 'thankyou', 'label' => 'Thank You Page URL', 'type' => 'text'],

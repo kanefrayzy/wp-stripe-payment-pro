@@ -5,6 +5,9 @@ if (!defined('ABSPATH')) die();
 try {
     $currency = strtolower($this->args['currency']);
     
+    // Генерация idempotency key для защиты от дублирования
+    $idempotency_key = 'limited_payments_' . $this->args['customer_id'] . '_' . time() . '_' . $this->key;
+    
     // יצירת מחיר (Price) אם לא סופק
     if (empty($this->args['price_id'])) {
         $price = \Stripe\Price::create([
@@ -41,8 +44,10 @@ try {
         return;
     }
     
-    // הגדרת ה-metadata למנוי
+    // הגדרת ה-metadata למנוי עם product_id ו-price_id
     $metadata = [
+        'product_id' => $this->args['product'] ?? '',
+        'price_id' => $priceId,
         'origin' => $this->args['origin'] ?? '',
         'app_payment_method' => 'payments',
         'support_agent' => $this->args['support_agent'] ?? '',
@@ -67,6 +72,8 @@ try {
         //'redirect_url' => 'https://auto.gsbot.in/webhook/15061d14-2e04-4c06-a51f-1246725fa596',
         'metadata' => $metadata,
         'default_payment_method' => $this->args['payment_method_id'],
+    ], [
+        'idempotency_key' => $idempotency_key
     ]);
     
     // בדיקה האם נדרשת אימות נוסף (3D Secure)
