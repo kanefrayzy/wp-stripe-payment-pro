@@ -172,7 +172,7 @@ class StripePaymentProcessor {
                 }
                 
                 if ($paymentIntent->status === 'requires_confirmation') {
-                    $confirmedPaymentIntent = \Stripe\PaymentIntent::confirm($paymentIntent->id);
+                    $confirmedPaymentIntent = $paymentIntent->confirm();
                     
                     if ($confirmedPaymentIntent->status === 'requires_action') {
                         $this->setOrder('requires_action', 'one_payment', $confirmedPaymentIntent->id, $invoiceWithPaymentIntent->id);
