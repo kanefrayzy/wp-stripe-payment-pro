@@ -156,6 +156,7 @@ class StripePaymentProcessor {
                 'default_payment_method' => $this->args['payment_method_id'],
                 'metadata' => $metadata,
                 'auto_advance' => true,
+                'pending_invoice_items_behavior' => 'include',
             ]);
 
             $finalizedInvoice = $invoice->finalizeInvoice();
