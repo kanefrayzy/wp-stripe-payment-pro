@@ -13,10 +13,22 @@ function custom_tools_sanitize_key($input) {
 }
 
 // סינון המפתח לפני השמירה בבסיס הנתונים
-add_filter('pre_update_option_product_key_field_prod', 'custom_tools_sanitize_key');
-add_filter('pre_update_option_product_key_field_dev', 'custom_tools_sanitize_key');
+add_filter('pre_update_option_product_key_field_prod', 'gs_stripe_preserve_secret_key', 5);
+add_filter('pre_update_option_product_key_field_dev', 'gs_stripe_preserve_secret_key', 5);
+add_filter('pre_update_option_product_key_field_prod', 'custom_tools_sanitize_key', 10);
+add_filter('pre_update_option_product_key_field_dev', 'custom_tools_sanitize_key', 10);
 add_filter('pre_update_option_public_key_field_prod', 'custom_tools_sanitize_key');
 add_filter('pre_update_option_public_key_field_dev', 'custom_tools_sanitize_key');
+
+function gs_stripe_preserve_secret_key($value, $old_value = null, $option = null) {
+    if ($option === 'product_key_field_prod' && empty($value) && empty($_POST['change_prod_secret'])) {
+        return get_option('product_key_field_prod');
+    }
+    if ($option === 'product_key_field_dev' && empty($value) && empty($_POST['change_dev_secret'])) {
+        return get_option('product_key_field_dev');
+    }
+    return $value;
+}
 
 // פונקציה לפענוח המפתח לפני הצגתו
 function custom_tools_unsanitize_key($value) {
@@ -48,27 +60,10 @@ function gs_stripe_add_settings_page() {
 
 function gs_stripe_register_settings() {
     register_setting('gs_stripe_settings', 'stripe_test_mode');
-    register_setting('gs_stripe_settings', 'product_key_field_prod', 'gs_stripe_save_secret_key');
+    register_setting('gs_stripe_settings', 'product_key_field_prod');
     register_setting('gs_stripe_settings', 'public_key_field_prod');
-    register_setting('gs_stripe_settings', 'product_key_field_dev', 'gs_stripe_save_secret_key');
+    register_setting('gs_stripe_settings', 'product_key_field_dev');
     register_setting('gs_stripe_settings', 'public_key_field_dev');
-}
-
-function gs_stripe_save_secret_key($value) {
-    $field_name = '';
-    if (strpos(current_filter(), 'product_key_field_prod') !== false) {
-        $field_name = 'product_key_field_prod';
-    } elseif (strpos(current_filter(), 'product_key_field_dev') !== false) {
-        $field_name = 'product_key_field_dev';
-    }
-    
-    $change_checkbox = $field_name === 'product_key_field_prod' ? 'change_prod_secret' : 'change_dev_secret';
-    
-    if (empty($value) && empty($_POST[$change_checkbox])) {
-        return get_option($field_name);
-    }
-    
-    return $value;
 }
 
 function gs_stripe_settings_page() {
