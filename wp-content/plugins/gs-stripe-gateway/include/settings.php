@@ -55,6 +55,10 @@ function gs_stripe_register_settings() {
 }
 
 function gs_stripe_settings_page() {
+    $prod_secret = get_option('product_key_field_prod');
+    $prod_public = get_option('public_key_field_prod');
+    $dev_secret = get_option('product_key_field_dev');
+    $dev_public = get_option('public_key_field_dev');
     ?>
     <div class="wrap">
         <h1>Stripe Gateway Settings</h1>
@@ -82,9 +86,15 @@ function gs_stripe_settings_page() {
                         <label for="product_key_field_prod">Secret Key (Live)</label>
                     </th>
                     <td>
-                        <input type="password" name="product_key_field_prod" id="product_key_field_prod" 
-                               value="<?php echo esc_attr(get_option('product_key_field_prod')); ?>" 
-                               class="regular-text" placeholder="sk_live_..." />
+                        <?php if (!empty($prod_secret)): ?>
+                            <input type="text" readonly class="regular-text" value="<?php echo str_repeat('•', 40) . substr($prod_secret, -4); ?>" style="background: #f0f0f0;" />
+                            <br><label><input type="checkbox" id="change_prod_secret" /> Change key</label>
+                            <input type="password" name="product_key_field_prod" id="product_key_field_prod_input" 
+                                   value="" class="regular-text" placeholder="sk_live_..." style="display:none;margin-top:5px;" />
+                        <?php else: ?>
+                            <input type="password" name="product_key_field_prod" id="product_key_field_prod" 
+                                   value="" class="regular-text" placeholder="sk_live_..." />
+                        <?php endif; ?>
                         <p class="description">Your Stripe secret key for production</p>
                     </td>
                 </tr>
@@ -95,7 +105,7 @@ function gs_stripe_settings_page() {
                     </th>
                     <td>
                         <input type="text" name="public_key_field_prod" id="public_key_field_prod" 
-                               value="<?php echo esc_attr(get_option('public_key_field_prod')); ?>" 
+                               value="<?php echo esc_attr($prod_public); ?>" 
                                class="regular-text" placeholder="pk_live_..." />
                         <p class="description">Your Stripe publishable key for production</p>
                     </td>
@@ -110,9 +120,15 @@ function gs_stripe_settings_page() {
                         <label for="product_key_field_dev">Secret Key (Test)</label>
                     </th>
                     <td>
-                        <input type="password" name="product_key_field_dev" id="product_key_field_dev" 
-                               value="<?php echo esc_attr(get_option('product_key_field_dev')); ?>" 
-                               class="regular-text" placeholder="sk_test_..." />
+                        <?php if (!empty($dev_secret)): ?>
+                            <input type="text" readonly class="regular-text" value="<?php echo str_repeat('•', 40) . substr($dev_secret, -4); ?>" style="background: #f0f0f0;" />
+                            <br><label><input type="checkbox" id="change_dev_secret" /> Change key</label>
+                            <input type="password" name="product_key_field_dev" id="product_key_field_dev_input" 
+                                   value="" class="regular-text" placeholder="sk_test_..." style="display:none;margin-top:5px;" />
+                        <?php else: ?>
+                            <input type="password" name="product_key_field_dev" id="product_key_field_dev" 
+                                   value="" class="regular-text" placeholder="sk_test_..." />
+                        <?php endif; ?>
                         <p class="description">Your Stripe secret key for testing</p>
                     </td>
                 </tr>
@@ -123,7 +139,7 @@ function gs_stripe_settings_page() {
                     </th>
                     <td>
                         <input type="text" name="public_key_field_dev" id="public_key_field_dev" 
-                               value="<?php echo esc_attr(get_option('public_key_field_dev')); ?>" 
+                               value="<?php echo esc_attr($dev_public); ?>" 
                                class="regular-text" placeholder="pk_test_..." />
                         <p class="description">Your Stripe publishable key for testing</p>
                     </td>
@@ -132,6 +148,15 @@ function gs_stripe_settings_page() {
             
             <?php submit_button(); ?>
         </form>
+        
+        <script>
+        document.getElementById('change_prod_secret')?.addEventListener('change', function() {
+            document.getElementById('product_key_field_prod_input').style.display = this.checked ? 'block' : 'none';
+        });
+        document.getElementById('change_dev_secret')?.addEventListener('change', function() {
+            document.getElementById('product_key_field_dev_input').style.display = this.checked ? 'block' : 'none';
+        });
+        </script>
     </div>
     <?php
 }
