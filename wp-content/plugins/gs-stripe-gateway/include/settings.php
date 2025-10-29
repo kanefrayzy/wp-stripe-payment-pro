@@ -55,13 +55,17 @@ function gs_stripe_register_settings() {
 }
 
 function gs_stripe_save_secret_key($value) {
-    $option_name = str_replace('product_key_field_', '', current_filter());
-    $option_name = str_replace('sanitize_option_', '', $option_name);
+    $field_name = '';
+    if (strpos(current_filter(), 'product_key_field_prod') !== false) {
+        $field_name = 'product_key_field_prod';
+    } elseif (strpos(current_filter(), 'product_key_field_dev') !== false) {
+        $field_name = 'product_key_field_dev';
+    }
     
-    $existing_key = isset($_POST[$option_name . '_existing']) ? $_POST[$option_name . '_existing'] : '';
+    $change_checkbox = $field_name === 'product_key_field_prod' ? 'change_prod_secret' : 'change_dev_secret';
     
-    if (empty($value) && !empty($existing_key)) {
-        return $existing_key;
+    if (empty($value) && empty($_POST[$change_checkbox])) {
+        return get_option($field_name);
     }
     
     return $value;
@@ -101,8 +105,7 @@ function gs_stripe_settings_page() {
                     <td>
                         <?php if (!empty($prod_secret)): ?>
                             <input type="text" readonly class="regular-text" value="<?php echo str_repeat('•', 40) . substr($prod_secret, -4); ?>" style="background: #f0f0f0;" />
-                            <input type="hidden" name="product_key_field_prod_existing" value="<?php echo esc_attr($prod_secret); ?>" />
-                            <br><label><input type="checkbox" id="change_prod_secret" /> Change key</label>
+                            <br><label><input type="checkbox" name="change_prod_secret" id="change_prod_secret" value="1" /> Change key</label>
                             <input type="password" name="product_key_field_prod" id="product_key_field_prod_input" 
                                    value="" class="regular-text" placeholder="sk_live_..." style="display:none;margin-top:5px;" />
                         <?php else: ?>
@@ -136,8 +139,7 @@ function gs_stripe_settings_page() {
                     <td>
                         <?php if (!empty($dev_secret)): ?>
                             <input type="text" readonly class="regular-text" value="<?php echo str_repeat('•', 40) . substr($dev_secret, -4); ?>" style="background: #f0f0f0;" />
-                            <input type="hidden" name="product_key_field_dev_existing" value="<?php echo esc_attr($dev_secret); ?>" />
-                            <br><label><input type="checkbox" id="change_dev_secret" /> Change key</label>
+                            <br><label><input type="checkbox" name="change_dev_secret" id="change_dev_secret" value="1" /> Change key</label>
                             <input type="password" name="product_key_field_dev" id="product_key_field_dev_input" 
                                    value="" class="regular-text" placeholder="sk_test_..." style="display:none;margin-top:5px;" />
                         <?php else: ?>
